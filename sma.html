@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Market Analysis Tool</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      input {
+        width: calc(100% - 22px);
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      button {
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .output {
+        margin-top: 20px;
+      }
+
+      #chart {
+        width: 100%;
+        height: 400px;
+      }
+
+      #stockDetails {
+        margin-top: 20px;
+        font-size: 1.2em;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Stock Market Analysis Tool</h1>
+      <input
+        id="stockInput"
+        type="text"
+        placeholder="Enter stock symbol (e.g., AAPL)"
+      />
+      <button id="fetchButton">Fetch Data</button>
+      <div class="output">
+        <canvas id="chart"></canvas>
+        <div id="stockDetails"></div>
+      </div>
+    </div>
+    <script>
+      document
+        .getElementById("fetchButton")
+        .addEventListener("click", fetchData);
+
+      async function fetchData() {
+        const stockSymbol = document.getElementById("stockInput").value;
+        const apiKey = "YOUR_API_KEY"; // Replace with your Alpha Vantage API key
+        const apiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${stockSymbol}&apikey=${apiKey}`;
+
+        try {
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+          displayData(data);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          alert(
+            "Failed to fetch data. Please check the stock symbol and try again."
+          );
+        }
+      }
+
+      function displayData(data) {
+        const timeSeries = data["Time Series (Daily)"];
+        const labels = [];
+        const stockPrices = [];
+
+        for (let date in timeSeries) {
+          labels.push(date);
+          stockPrices.push(parseFloat(timeSeries[date]["4. close"]));
+        }
+
+        // Reverse the arrays to display the oldest data first
+        labels.reverse();
+        stockPrices.reverse();
+
+        const ctx = document.getElementById("chart").getContext("2d");
+        const chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Stock Price",
+                data: stockPrices,
+                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Date",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Price (USD)",
+                },
+              },
+            },
+          },
+        });
+
+        // Display stock details
+        const stockDetails = `
+                <h2>Stock Details for ${data["Meta Data"]["2. Symbol"]}</h2>
+                <p>Last Refreshed: ${data["Meta Data"]["3. Last Refreshed"]}</p>
+                <p>Open Price: ${timeSeries[labels[0]]["1. open"]}</p>
+                <p>Close Price: ${timeSeries[labels[0]]["4. close"]}</p>
+                <p>High Price: ${timeSeries[labels[0]]["2. high"]}</p>
+                <p>Low Price: ${timeSeries[labels[0]]["3. low"]}</p>
+            `;
+        document.getElementById("stockDetails").innerHTML = stockDetails;
+      }
+    </script>
+  </body>
+</html>
